@@ -66,16 +66,26 @@ app.layout = html.Div([
 ])
 
 # 🎯 Callbacks for interactive charts
+# 🎯 Callbacks for interactive charts + KPIs
 @app.callback(
-    [Output('sales-category-graph', 'figure'),
+    [Output('total-sales', 'children'),
+     Output('total-customers', 'children'),
+     Output('total-orders', 'children'),
+     Output('sales-category-graph', 'figure'),
      Output('sales-age-graph', 'figure'),
      Output('sales-zone-graph', 'figure')],
     [Input('state-dropdown', 'value')]
 )
-def update_graphs(selected_state):
+def update_dashboard(selected_state):
+    # ✅ Filter data based on dropdown selection
     filtered_df = df[df['state'] == selected_state] if selected_state else df
 
-    # 1️⃣ Total Sales by Product Category
+    # ✅ Update KPI values dynamically
+    total_sales = filtered_df['amount'].sum()
+    total_customers = filtered_df['customer_id'].nunique()
+    total_orders = len(filtered_df)
+
+    # ✅ 1️⃣ Total Sales by Product Category
     category_sales = filtered_df.groupby('product_category')['amount'].sum().sort_values(ascending=False).head(10)
     fig_category = px.bar(
         category_sales,
@@ -87,16 +97,19 @@ def update_graphs(selected_state):
         color_continuous_scale='Blues'
     )
 
-    # 2️⃣ Total Sales by Age Group
+    # ✅ 2️⃣ Sales by Age Group
     age_sales = filtered_df.groupby('age_group')['amount'].sum().sort_values(ascending=False)
-    fig_age = px.pie(
-        names=age_sales.index,
-        values=age_sales.values,
+    fig_age = px.bar(
+        age_sales,
+        x=age_sales.index,
+        y=age_sales.values,
+        labels={'x': 'Age Group', 'y': 'Total Sales'},
         title=f"Sales by Age Group {'in ' + selected_state if selected_state else ''}",
-        hole=0.4
+        color=age_sales.values,
+        color_continuous_scale='Greens'
     )
 
-    # 3️⃣ Total Sales by Zone
+    # ✅ 3️⃣ Sales by Zone
     zone_sales = filtered_df.groupby('zone')['amount'].sum().sort_values(ascending=False)
     fig_zone = px.bar(
         zone_sales,
@@ -105,10 +118,10 @@ def update_graphs(selected_state):
         labels={'x': 'Zone', 'y': 'Total Sales'},
         title=f"Sales by Zone {'in ' + selected_state if selected_state else ''}",
         color=zone_sales.values,
-        color_continuous_scale='Viridis'
+        color_continuous_scale='Oranges'
     )
 
-    return fig_category, fig_age, fig_zone
+    return total_sales, total_customers, total_orders, fig_category, fig_age, fig_zone
 
 if __name__ == '__main__':
     app.run(debug=True)
