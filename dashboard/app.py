@@ -18,20 +18,16 @@ df.columns = df.columns.str.strip()
 df['amount'] = pd.to_numeric(df['amount'], errors='coerce')
 df.dropna(subset=['amount'], inplace=True)
 
-# 🧮 KPIs
-total_sales = df['amount'].sum()
-total_customers = df['user_id'].nunique()
-total_orders = df['orders'].astype(float).sum()
-
 # 🏗️ App setup
 app = Dash(__name__)
-server=app.server
+server = app.server
 app.title = "Indian E-Commerce Dashboard"
 
 # 📊 Layout
 app.layout = html.Div([
     html.H1("🇮🇳 Indian E-Commerce Dashboard (Diwali Sales)"),
 
+    # 🔽 Dropdown
     html.Div(className="dropdown-container", children=[
         dcc.Dropdown(
             id='state-dropdown',
@@ -41,23 +37,23 @@ app.layout = html.Div([
         )
     ]),
 
-    # KPI Cards
+    # 💎 KPI Cards (IDs added)
     html.Div(className="KPI-container", children=[
         html.Div(className="card", children=[
             html.H3("💰 Total Sales"),
-            html.P(f"₹{total_sales:,.0f}")
+            html.P(id='total-sales', children="₹0")
         ]),
         html.Div(className="card", children=[
             html.H3("👥 Total Customers"),
-            html.P(f"{total_customers:,}")
+            html.P(id='total-customers', children="0")
         ]),
         html.Div(className="card", children=[
             html.H3("🛒 Total Orders"),
-            html.P(f"{int(total_orders):,}")
+            html.P(id='total-orders', children="0")
         ]),
     ]),
 
-    # Graphs Section
+    # 📈 Graphs
     html.Div([
         dcc.Graph(id='sales-category-graph'),
         dcc.Graph(id='sales-age-graph'),
@@ -65,8 +61,7 @@ app.layout = html.Div([
     ])
 ])
 
-# 🎯 Callbacks for interactive charts
-# 🎯 Callbacks for interactive charts + KPIs
+# 🎯 Callback for KPIs + Graphs
 @app.callback(
     [Output('total-sales', 'children'),
      Output('total-customers', 'children'),
@@ -77,54 +72,60 @@ app.layout = html.Div([
     [Input('state-dropdown', 'value')]
 )
 def update_dashboard(selected_state):
-    # ✅ Filter data based on dropdown selection
+    # ✅ Filter data
     filtered_df = df[df['state'] == selected_state] if selected_state else df
 
-    # ✅ Update KPI values dynamically
+    # ✅ KPIs (fixed user_id column)
     total_sales = filtered_df['amount'].sum()
-    total_customers = filtered_df['customer_id'].nunique()
+    total_customers = filtered_df['user_id'].nunique()
     total_orders = len(filtered_df)
 
-    # ✅ 1️⃣ Total Sales by Product Category
-    category_sales = filtered_df.groupby('product_category')['amount'].sum().sort_values(ascending=False).head(10)
+    # ✅ 1️⃣ Category Sales
+    category_sales = filtered_df.groupby('product_category')['amount'].sum().reset_index()
     fig_category = px.bar(
         category_sales,
-        x=category_sales.index,
-        y=category_sales.values,
-        labels={'x': 'Product Category', 'y': 'Total Sales'},
-        title=f"Top 10 Product Categories {'in ' + selected_state if selected_state else ''}",
-        color=category_sales.values,
+        x='product_category',
+        y='amount',
+        title="Top Product Categories",
+        color='amount',
         color_continuous_scale='Blues'
     )
 
-    # ✅ 2️⃣ Sales by Age Group
-    age_sales = filtered_df.groupby('age_group')['amount'].sum().sort_values(ascending=False)
+    # ✅ 2️⃣ Age Sales
+    age_sales = filtered_df.groupby('age_group')['amount'].sum().reset_index()
     fig_age = px.bar(
         age_sales,
-        x=age_sales.index,
-        y=age_sales.values,
-        labels={'x': 'Age Group', 'y': 'Total Sales'},
-        title=f"Sales by Age Group {'in ' + selected_state if selected_state else ''}",
-        color=age_sales.values,
+        x='age_group',
+        y='amount',
+        title="Sales by Age Group",
+        color='amount',
         color_continuous_scale='Greens'
     )
 
-    # ✅ 3️⃣ Sales by Zone
-    zone_sales = filtered_df.groupby('zone')['amount'].sum().sort_values(ascending=False)
+    # ✅ 3️⃣ Zone Sales
+    zone_sales = filtered_df.groupby('zone')['amount'].sum().reset_index()
     fig_zone = px.bar(
         zone_sales,
-        x=zone_sales.index,
-        y=zone_sales.values,
-        labels={'x': 'Zone', 'y': 'Total Sales'},
-        title=f"Sales by Zone {'in ' + selected_state if selected_state else ''}",
-        color=zone_sales.values,
+        x='zone',
+        y='amount',
+        title="Sales by Zone",
+        color='amount',
         color_continuous_scale='Oranges'
     )
 
-    return total_sales, total_customers, total_orders, fig_category, fig_age, fig_zone
+    # 🪄 Format KPI display values
+    return (
+        f"₹{total_sales:,.0f}",
+        f"{total_customers:,}",
+        f"{total_orders:,}",
+        fig_category,
+        fig_age,
+        fig_zone
+    )
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
 
