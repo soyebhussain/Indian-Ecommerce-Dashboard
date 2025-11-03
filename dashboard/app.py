@@ -25,6 +25,7 @@ total_orders = df['orders'].astype(float).sum()
 
 # 🏗️ App setup
 app = Dash(__name__)
+server=app.server
 app.title = "Indian E-Commerce Dashboard"
 
 # 📊 Layout
